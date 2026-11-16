@@ -24,7 +24,7 @@ The app UI is in Simplified Chinese.
 
 ## Installation
 
-Download `音源排查.zip` from [Releases](../../releases), unzip it, and drag the app into the Applications folder.
+Download `SoundTrace-<version>-macOS-arm64.zip` from [Releases](../../releases), unzip it, and drag `音源排查.app` into the Applications folder.
 
 The app is ad-hoc signed. If macOS blocks it on first launch, right-click the app and choose "Open", or allow it under System Settings → Privacy & Security.
 
