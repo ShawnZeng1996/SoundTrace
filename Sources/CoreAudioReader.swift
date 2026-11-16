@@ -12,7 +12,7 @@ struct AudioProcessSample {
 
 struct AudioReadError: LocalizedError {
     let status: OSStatus
-    var errorDescription: String? { "无法读取系统音频状态（\(status)）" }
+    var errorDescription: String? { String(localized: "无法读取系统音频状态（\(status)）") }
 }
 
 enum CoreAudioReader {
@@ -39,8 +39,8 @@ enum CoreAudioReader {
 
     static func defaultOutputName() -> String {
         guard let device = integer(object: AudioObjectID(kAudioObjectSystemObject),
-                                   selector: kAudioHardwarePropertyDefaultOutputDevice), device != 0 else { return "无输出设备" }
-        return string(object: device, selector: kAudioObjectPropertyName) ?? "未知输出设备"
+                                   selector: kAudioHardwarePropertyDefaultOutputDevice), device != 0 else { return String(localized: "无输出设备") }
+        return string(object: device, selector: kAudioObjectPropertyName) ?? String(localized: "未知输出设备")
     }
 
     private static func integer(object: AudioObjectID, selector: AudioObjectPropertySelector) -> UInt32? {

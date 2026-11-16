@@ -6,16 +6,15 @@
 
 Your Mac suddenly plays a "ding" and you have no idea which app did it? SoundTrace shows, in real time, which apps are using audio, and keeps a log of every start, stop, and system sound along with who triggered it.
 
-The app UI is in Simplified Chinese.
-
-![Screenshot](docs/screenshot.png)
+![Screenshot](docs/screenshot-en.png)
 
 ## Features
 
 - **Live list**: apps currently playing (or recording) audio, with process name, PID, devices in use, and start time.
 - **Find the real requester**: system alert sounds are played by `systemsoundserverd`, and notification sounds by Notification Center. SoundTrace reads the system log to show which app actually requested the sound and which sound file was played.
-- **History**: grouped by date, with a calendar picker that defaults to today or an "all dates" view. Search, export to JSON, and clear. Keeps up to 500 entries.
+- **History**: grouped by date and filtered by a date range with start and end calendar pickers, both defaulting to today. Search, export to JSON, and clear. Keeps up to 500 entries.
 - **Helper process attribution**: audio helper processes of browsers, Electron apps, etc. are grouped under their parent app.
+- **English and Simplified Chinese**: the UI follows the system language; other languages fall back to English.
 
 ## Requirements
 
@@ -24,9 +23,25 @@ The app UI is in Simplified Chinese.
 
 ## Installation
 
-Download `SoundTrace-<version>-macOS-arm64.zip` from [Releases](../../releases), unzip it, and drag `音源排查.app` into the Applications folder.
+Download `SoundTrace-<version>-macOS-arm64.zip` from [Releases](../../releases), unzip it, and drag `音源排查.app` into the Applications folder (Finder shows it as SoundTrace on English systems).
 
 The app is ad-hoc signed. If macOS blocks it on first launch, right-click the app and choose "Open", or allow it under System Settings → Privacy & Security.
+
+## Changing the UI language
+
+There is no in-app language switch. The app follows the system language: Simplified Chinese systems show Chinese, all other languages show English. To set the language for this app only:
+
+1. Open System Settings → General → Language & Region, and click "+" under "Applications" at the bottom.
+2. Choose 音源排查 (SoundTrace), then choose "English" or "简体中文".
+3. Quit and reopen the app.
+
+Or use Terminal (also requires reopening the app):
+
+```sh
+defaults write local.shawn.SoundTrace AppleLanguages '("en")'       # English
+defaults write local.shawn.SoundTrace AppleLanguages '("zh-Hans")'  # Simplified Chinese
+defaults delete local.shawn.SoundTrace AppleLanguages               # follow the system again
+```
 
 ## Build from source
 
@@ -76,6 +91,7 @@ Sources/
   CoreAudioReader.swift             Core Audio access
   AppResolver.swift                 Process → app attribution
   SoundLogStream.swift              System sound log parsing
+Resources/*.lproj                   English and Simplified Chinese strings
 Tests/                              Logic tests and UI render tests
 Assets/AppIcon.png                  App icon
 Tools/PrepareIcon.swift             Icon processing script

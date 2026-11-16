@@ -3,7 +3,7 @@ import AppKit
 if CommandLine.arguments.contains("--diagnose") {
     let duration = CommandLine.arguments.last.flatMap(Double.init) ?? 10
     guard duration > 0, duration <= 3600 else {
-        fputs("诊断时长需在 0–3600 秒之间。\n", stderr)
+        fputs(String(localized: "诊断时长需在 0–3600 秒之间。") + "\n", stderr)
         exit(1)
     }
     let monitor = AudioMonitor(persistHistory: false)
@@ -16,7 +16,7 @@ if CommandLine.arguments.contains("--diagnose") {
         }
     }
     monitor.start()
-    print("输出设备：\(monitor.outputDevice)；监控 \(duration) 秒")
+    print(String(localized: "输出设备：\(monitor.outputDevice)；监控 \(Int(duration)) 秒"))
     fflush(stdout)
     RunLoop.main.run(until: Date().addingTimeInterval(duration))
     let error = monitor.errorMessage

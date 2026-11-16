@@ -11,7 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {
-            sender.windows.first(where: { $0.title == "音源排查" })?.makeKeyAndOrderFront(nil)
+            sender.windows.first(where: { $0.title == String(localized: "音源排查") })?.makeKeyAndOrderFront(nil)
         }
         return true
     }

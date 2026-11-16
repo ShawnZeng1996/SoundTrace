@@ -1,14 +1,15 @@
 import AppKit
+import AudioToolbox
 import SwiftUI
 
 @main
 struct UITests {
     static func main() throws {
-        guard CommandLine.arguments.count == 2 else { exit(1) }
+        guard CommandLine.arguments.count >= 2 else { exit(1) }
         let output = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         let application = NSApplication.shared
         application.setActivationPolicy(.accessory)
-        application.applicationIconImage = NSImage(contentsOf: output.deletingLastPathComponent().appendingPathComponent("Assets/AppIcon.png"))
+        application.applicationIconImage = NSImage(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Assets/AppIcon.png"))
         let monitor = AudioMonitor(persistHistory: false)
         let view = NSHostingView(rootView: ContentView(monitor: monitor))
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 920, height: 720),
@@ -53,45 +54,44 @@ struct UITests {
         let missingDay = Calendar.current.date(byAdding: .day, value: -7, to: today)!
         for (day, bundle) in [(yesterday, "test.yesterday"), (today, "test.today")] {
             fixtures.apply(samples: [AudioProcessSample(objectID: 900001, pid: 990001, bundleID: bundle,
-                                                        output: true, input: false, devices: ["测试输出"])],
+                                                        output: true, input: false, devices: ["MacBook Pro"])],
                            at: day.addingTimeInterval(9 * 3600))
             fixtures.apply(samples: [], at: day.addingTimeInterval(9 * 3600 + 60))
         }
-        let cases: [(String, HistoryDateFilter)] = [
-            ("today", .today), ("yesterday", .day(yesterday)), ("all", .all), ("empty-date", .day(missingDay))
+        let cases: [(String, HistoryDateRange)] = [
+            ("today", HistoryDateRange()), ("yesterday", HistoryDateRange(start: yesterday, end: yesterday)),
+            ("range", HistoryDateRange(start: yesterday, end: nil)), ("empty-date", HistoryDateRange(start: missingDay, end: missingDay))
         ]
-        for (name, filter) in cases {
-            let fixtureView = NSHostingView(rootView: ContentView(monitor: fixtures, initialDateFilter: filter))
+        for (name, range) in cases {
+            let fixtureView = NSHostingView(rootView: ContentView(monitor: fixtures, initialDateRange: range))
             window.contentView = fixtureView
             RunLoop.main.run(until: Date().addingTimeInterval(0.2))
             try snapshot(view: fixtureView, to: output.appendingPathComponent("ui-\(name).png"))
-            guard let picker = datePicker(in: fixtureView) else {
-                fputs("未找到原生日期选择器\n", stderr)
-                exit(1)
-            }
-            guard picker.presentsCalendarOverlay else {
-                fputs("日期选择器没有启用弹出日历\n", stderr)
-                exit(1)
-            }
-            guard picker.isEnabled == (name != "all") else {
-                fputs("全部日期模式的日期选择器状态不正确\n", stderr)
+            let pickers = datePickers(in: fixtureView)
+            guard pickers.count == 2, pickers.allSatisfy({ $0.presentsCalendarOverlay && $0.isEnabled }) else {
+                fputs("没有找到两个可用的弹出日历选择器\n", stderr)
                 exit(1)
             }
             if name == "today" {
-                guard Calendar.current.isDateInToday(picker.dateValue) else {
-                    fputs("日期选择器没有默认当天\n", stderr)
+                guard pickers.allSatisfy({ Calendar.current.isDateInToday($0.dateValue) }) else {
+                    fputs("日期区间没有默认当天\n", stderr)
                     exit(1)
                 }
-                picker.dateValue = yesterday
-                guard let action = picker.action,
-                      application.sendAction(action, to: picker.target, from: picker) else {
-                    fputs("日期选择器未触发更新\n", stderr)
+                let start = pickers.min { $0.convert($0.bounds, to: nil).minX < $1.convert($1.bounds, to: nil).minX }!
+                start.dateValue = yesterday
+                guard let action = start.action,
+                      application.sendAction(action, to: start.target, from: start) else {
+                    fputs("开始日期未触发更新\n", stderr)
                     exit(1)
                 }
                 RunLoop.main.run(until: Date().addingTimeInterval(0.2))
                 try snapshot(view: fixtureView, to: output.appendingPathComponent("ui-picked-date.png"))
             }
         }
+        var wakeSound: SystemSoundID = 0
+        AudioServicesCreateSystemSoundID(URL(fileURLWithPath: "/System/Library/Sounds/Tink.aiff") as CFURL, &wakeSound)
+        AudioServicesDisposeSystemSoundID(wakeSound)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.5))
         let pgrep = Process()
         let pgrepOutput = Pipe()
         pgrep.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
@@ -109,7 +109,7 @@ struct UITests {
         let now = Date()
         traced.handle(.notification(bundleID: "com.apple.ScriptEditor2", sound: "Glass"), from: 751, at: now)
         traced.apply(samples: [AudioProcessSample(objectID: 900002, pid: soundServer, bundleID: nil,
-                                                  output: true, input: false, devices: ["测试输出"])], at: now)
+                                                  output: true, input: false, devices: ["MacBook Pro"])], at: now)
         guard traced.apps.first?.processes.first?.processName == "systemsoundserverd" else {
             fputs("系统音效进程没有出现在当前列表\n", stderr)
             exit(1)
@@ -119,15 +119,12 @@ struct UITests {
         RunLoop.main.run(until: Date().addingTimeInterval(0.2))
         try snapshot(view: tracedView, to: output.appendingPathComponent("ui-trigger.png"))
         window.orderOut(nil)
-        print("已验证原生日期选择器默认当天及选择历史日期；已渲染全部日期与无记录日期")
+        print("已验证日期区间默认当天及修改开始日期；已渲染单日、多日与无记录区间")
     }
 
-    private static func datePicker(in view: NSView) -> NSDatePicker? {
-        if let picker = view as? NSDatePicker { return picker }
-        for child in view.subviews {
-            if let picker = datePicker(in: child) { return picker }
-        }
-        return nil
+    private static func datePickers(in view: NSView) -> [NSDatePicker] {
+        if let picker = view as? NSDatePicker { return [picker] }
+        return view.subviews.flatMap { datePickers(in: $0) }
     }
 
     private static func snapshot(view: NSView, to url: URL) throws {

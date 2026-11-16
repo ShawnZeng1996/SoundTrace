@@ -1,9 +1,15 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-private enum AudioFilter: String, CaseIterable {
-    case output = "音频输出"
-    case all = "输出与输入"
+private enum AudioFilter: CaseIterable {
+    case output, all
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .output: return "音频输出"
+        case .all: return "输出与输入"
+        }
+    }
 }
 
 struct ContentView: View {
@@ -12,13 +18,11 @@ struct ContentView: View {
     @State private var search = ""
     @State private var confirmClear = false
     @State private var exportError: String?
-    @State private var historyDateFilter: HistoryDateFilter
-    @State private var showAllDates: Bool
+    @State private var dateRange: HistoryDateRange
 
-    init(monitor: AudioMonitor, initialDateFilter: HistoryDateFilter = .today) {
+    init(monitor: AudioMonitor, initialDateRange: HistoryDateRange = HistoryDateRange()) {
         self.monitor = monitor
-        _historyDateFilter = State(initialValue: initialDateFilter == .all ? .today : initialDateFilter)
-        _showAllDates = State(initialValue: initialDateFilter == .all)
+        _dateRange = State(initialValue: initialDateRange)
     }
 
     private var visibleApps: [ActiveAudioApp] {
@@ -29,19 +33,17 @@ struct ContentView: View {
 
     private var visibleEvents: [AudioEvent] {
         monitor.events.filter {
-            (showAllDates || historyDateFilter.contains($0.date))
+            dateRange.contains($0.date)
                 && (filter == .all || $0.kind.isOutput)
                 && matches($0.appName, $0.processName)
         }
     }
 
-    private var selectedHistoryDate: Binding<Date> {
+    private func dayBinding(_ keyPath: WritableKeyPath<HistoryDateRange, Date?>) -> Binding<Date> {
         Binding {
-            if case .day(let date) = historyDateFilter { return date }
-            return Date()
+            dateRange[keyPath: keyPath] ?? Date()
         } set: { date in
-            historyDateFilter = Calendar.current.isDateInToday(date)
-                ? .today : .day(Calendar.current.startOfDay(for: date))
+            dateRange[keyPath: keyPath] = Calendar.current.isDateInToday(date) ? nil : Calendar.current.startOfDay(for: date)
         }
     }
 
@@ -113,7 +115,7 @@ struct ContentView: View {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("当前输出设备").font(.caption).foregroundStyle(.secondary)
-                    Text(monitor.outputDevice.isEmpty ? "正在读取…" : monitor.outputDevice)
+                    Text(monitor.outputDevice.isEmpty ? String(localized: "正在读取…") : monitor.outputDevice)
                         .font(.headline)
                 }
                 Spacer()
@@ -135,7 +137,7 @@ struct ContentView: View {
             }
             HStack(spacing: 16) {
                 Picker("显示范围", selection: $filter) {
-                    ForEach(AudioFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    ForEach(AudioFilter.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 240)
@@ -175,22 +177,24 @@ struct ContentView: View {
                 Button("导出") { exportHistory() }.disabled(visibleEvents.isEmpty)
                 Button("清空全部") { confirmClear = true }.disabled(monitor.events.isEmpty)
             }
-            HStack(spacing: 12) {
-                DatePicker("日期", selection: selectedHistoryDate, displayedComponents: .date)
+            HStack(spacing: 8) {
+                let bounds = dateRange.bounds()
+                Text("日期")
+                DatePicker("开始日期", selection: dayBinding(\.start),
+                           in: ...bounds.upperBound.addingTimeInterval(86_399), displayedComponents: .date)
+                    .labelsHidden()
                     .datePickerStyle(.compact)
                     .fixedSize()
-                    .disabled(showAllDates)
-                Button("今天") {
-                    historyDateFilter = .today
-                    showAllDates = false
-                }
-                Toggle("全部日期", isOn: $showAllDates)
-                    .toggleStyle(.checkbox)
+                Text("至").foregroundStyle(.secondary)
+                DatePicker("结束日期", selection: dayBinding(\.end), in: bounds.lowerBound..., displayedComponents: .date)
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                    .fixedSize()
                 Spacer()
             }
             if visibleEvents.isEmpty {
-                emptyState(title: !search.isEmpty ? "没有匹配的记录" : showAllDates ? "还没有音频记录" : "该日期没有音频记录",
-                           subtitle: "记录保存在本机，可切换日期查看。")
+                emptyState(title: !search.isEmpty ? "没有匹配的记录" : "该时间段没有音频记录",
+                           subtitle: "记录保存在本机，可调整日期区间查看。")
             } else {
                 ForEach(logDays) { day in
                     VStack(alignment: .leading, spacing: 10) {
@@ -211,14 +215,14 @@ struct ContentView: View {
         }
     }
 
-    private func sectionTitle(_ title: String, detail: String) -> some View {
+    private func sectionTitle(_ title: LocalizedStringKey, detail: LocalizedStringKey) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(title).font(.headline)
             Text(detail).font(.caption).foregroundStyle(.secondary)
         }
     }
 
-    private func emptyState(title: String, subtitle: String) -> some View {
+    private func emptyState(title: LocalizedStringKey, subtitle: LocalizedStringKey) -> some View {
         VStack(spacing: 8) {
             Text(title).font(.subheadline.weight(.medium))
             Text(subtitle).font(.caption).foregroundStyle(.secondary)
@@ -234,14 +238,14 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack {
                     Text(app.identity.name).font(.headline).textSelection(.enabled)
-                    if app.output { badge("输出中", color: .blue) }
-                    if app.input { badge("输入中", color: .orange) }
+                    if app.output { badge(String(localized: "输出中"), color: .blue) }
+                    if app.input { badge(String(localized: "输入中"), color: .orange) }
                 }
                 Text(app.processes.map { "\($0.processName) · PID \($0.pid)" }.joined(separator: "  /  "))
                     .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 let sources = triggerSources(for: app)
                 if !sources.isEmpty {
-                    Text("触发来源：" + sources.joined(separator: "、"))
+                    Text("触发来源：\(sources.joined(separator: String(localized: "、")))")
                         .font(.subheadline.weight(.medium)).foregroundStyle(.purple).textSelection(.enabled)
                 }
                 if !app.devices.isEmpty {
@@ -290,7 +294,7 @@ struct ContentView: View {
         let start = app.since.addingTimeInterval(-3)
         var names: [String] = []
         for event in monitor.events where event.kind.isTrigger && event.date >= start {
-            let name = event.sound.map { "\(event.appName)（\($0)）" } ?? event.appName
+            let name = event.sound.map { String(localized: "\(event.appName)（\($0)）") } ?? event.appName
             if !names.contains(name) { names.append(name) }
         }
         return names
@@ -303,7 +307,7 @@ struct ContentView: View {
     private func exportHistory() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]
-        panel.nameFieldStringValue = "音频记录.json"
+        panel.nameFieldStringValue = String(localized: "音频记录.json")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             let encoder = JSONEncoder()

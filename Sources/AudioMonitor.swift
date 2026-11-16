@@ -27,12 +27,12 @@ struct AudioEvent: Identifiable, Codable {
         case outputStarted, outputStopped, inputStarted, inputStopped, systemSound, notificationSound
         var title: String {
             switch self {
-            case .outputStarted: return "开始输出"
-            case .outputStopped: return "停止输出"
-            case .inputStarted: return "开始输入"
-            case .inputStopped: return "停止输入"
-            case .systemSound: return "系统音效"
-            case .notificationSound: return "通知音效"
+            case .outputStarted: return String(localized: "开始输出")
+            case .outputStopped: return String(localized: "停止输出")
+            case .inputStarted: return String(localized: "开始输入")
+            case .inputStopped: return String(localized: "停止输入")
+            case .systemSound: return String(localized: "系统音效")
+            case .notificationSound: return String(localized: "通知音效")
             }
         }
         var isOutput: Bool { self != .inputStarted && self != .inputStopped }
@@ -41,17 +41,19 @@ struct AudioEvent: Identifiable, Codable {
     }
 }
 
-enum HistoryDateFilter: Hashable {
-    case today
-    case day(Date)
-    case all
+struct HistoryDateRange: Hashable {
+    // nil means "today", so an untouched range keeps following the current day across midnight.
+    var start: Date?
+    var end: Date?
+
+    func bounds(now: Date = Date(), calendar: Calendar = .current) -> ClosedRange<Date> {
+        let first = calendar.startOfDay(for: start ?? now)
+        let last = calendar.startOfDay(for: end ?? now)
+        return min(first, last)...max(first, last)
+    }
 
     func contains(_ date: Date, now: Date = Date(), calendar: Calendar = .current) -> Bool {
-        switch self {
-        case .today: return calendar.isDate(date, inSameDayAs: now)
-        case .day(let day): return calendar.isDate(date, inSameDayAs: day)
-        case .all: return true
-        }
+        bounds(now: now, calendar: calendar).contains(calendar.startOfDay(for: date))
     }
 }
 
@@ -106,7 +108,7 @@ final class AudioMonitor: ObservableObject {
             do {
                 events = Array(try JSONDecoder().decode([AudioEvent].self, from: Data(contentsOf: url)).prefix(500))
             } catch {
-                storageError = "历史记录未能读取"
+                storageError = String(localized: "历史记录未能读取")
             }
         }
     }
@@ -120,7 +122,7 @@ final class AudioMonitor: ObservableObject {
         refresh()
         traceError = nil
         soundLog.start(onLine: { [weak self] line, sender in self?.handle(line, from: sender, at: Date()) },
-                       onFailure: { [weak self] in self?.traceError = "无法读取系统音效来源" })
+                       onFailure: { [weak self] in self?.traceError = String(localized: "无法读取系统音效来源") })
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.refresh() }
         RunLoop.main.add(timer!, forMode: .common)
     }
@@ -250,7 +252,7 @@ final class AudioMonitor: ObservableObject {
             try JSONEncoder().encode(events).write(to: url, options: .atomic)
             storageError = nil
         } catch {
-            storageError = "历史记录未能保存"
+            storageError = String(localized: "历史记录未能保存")
         }
     }
 

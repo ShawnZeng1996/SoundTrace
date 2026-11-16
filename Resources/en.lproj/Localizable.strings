@@ -1,0 +1,76 @@
+/* App */
+"音源排查" = "SoundTrace";
+"找到正在使用音频的应用" = "Find the apps that are using audio";
+"实时监控" = "Monitoring";
+"监控已暂停" = "Monitoring paused";
+"暂停" = "Pause";
+"继续" = "Resume";
+
+/* Status */
+"当前输出设备" = "Output device";
+"正在读取…" = "Reading…";
+"个应用输出中" = "playing audio";
+"显示范围" = "Show";
+"音频输出" = "Output";
+"输出与输入" = "Output & input";
+"搜索应用或进程" = "Search apps or processes";
+"无输出设备" = "No output device";
+"未知输出设备" = "Unknown output device";
+"无法读取系统音频状态（%d）" = "Can't read the system audio state (%d)";
+"历史记录未能读取" = "Couldn't read history";
+"历史记录未能保存" = "Couldn't save history";
+"无法读取系统音效来源" = "Can't read system sound sources";
+
+/* Current apps */
+"正在使用音频" = "Using audio";
+"没有匹配的应用" = "No matching apps";
+"暂无应用使用音频" = "No apps are using audio";
+"声音响起时，应用会出现在这里；停止后可在下方回查。" = "Apps appear here while they play sound; look them up below after they stop.";
+"继续监控后将恢复记录。" = "Recording resumes when monitoring is resumed.";
+"输出中" = "Playing";
+"输入中" = "Recording";
+"触发来源：%@" = "Triggered by: %@";
+"、" = ", ";
+"%@（%@）" = "%1$@ (%2$@)";
+
+/* History */
+"最近记录" = "History";
+"导出" = "Export";
+"清空全部" = "Clear All";
+"日期" = "Date";
+"至" = "to";
+"开始日期" = "Start date";
+"结束日期" = "End date";
+"该时间段没有音频记录" = "No audio history in this date range";
+"记录保存在本机，可调整日期区间查看。" = "History is stored on this Mac. Adjust the date range to browse it.";
+"没有匹配的记录" = "No matching entries";
+"开始输出" = "Output on";
+"停止输出" = "Output off";
+"开始输入" = "Input on";
+"停止输入" = "Input off";
+"系统音效" = "System sound";
+"通知音效" = "Notification";
+"音频记录.json" = "SoundTrace history.json";
+"仅观察音频通道与系统音效日志，不录音、不联网。静音播放也可能显示。" = "Only watches audio channels and the system sound log. Never records audio or goes online. Silent playback may also appear.";
+
+/* Alerts */
+"清空全部记录？" = "Clear all history?";
+"所有日期的已保存记录都会被清空。" = "Saved entries for every date will be deleted.";
+"取消" = "Cancel";
+"清空" = "Clear";
+"导出失败" = "Export failed";
+"好" = "OK";
+
+/* Menu bar */
+"音源排查 · 监控中" = "SoundTrace · Monitoring";
+"音源排查 · 已暂停" = "SoundTrace · Paused";
+"暂无应用输出音频" = "No apps are playing audio";
+"%@ · 输出中" = "%@ · Playing";
+"打开音源排查" = "Open SoundTrace";
+"暂停监控" = "Pause Monitoring";
+"继续监控" = "Resume Monitoring";
+"退出" = "Quit";
+
+/* Command line */
+"诊断时长需在 0–3600 秒之间。" = "Duration must be between 0 and 3600 seconds.";
+"输出设备：%@；监控 %lld 秒" = "Output device: %@; monitoring for %lld seconds";

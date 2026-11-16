@@ -12,6 +12,8 @@ xcrun swiftc -swift-version 5 -O \
     -framework SwiftUI -framework AppKit -framework CoreAudio -lproc \
     -o "$CONTENTS/MacOS/SoundTrace"
 cp "$ROOT/AppInfo.plist" "$CONTENTS/Info.plist"
+rm -rf "$CONTENTS/Resources/"*.lproj(N)
+cp -R "$ROOT"/Resources/*.lproj "$CONTENTS/Resources/"
 ICONSET="$BUILD/AppIcon.iconset"
 mkdir -p "$ICONSET"
 for size in 16 32 128 256 512; do

@@ -12,8 +12,9 @@ Mac 突然“叮”一声，却不知道是哪个应用发出的？音源排查�
 
 - **实时列表**：显示当前正在输出（或输入）音频的应用、进程、PID、使用的设备和开始时间。
 - **追到真正的发起者**：系统提示音由 `systemsoundserverd` 代为播放，通知声音由通知中心代为播放。音源排查会读取系统日志，显示是哪个应用请求了这次声音，以及播放的音效文件。
-- **历史记录**：按日期分组，日历选择器默认选中今天，也可以查看全部日期；支持搜索、导出 JSON、清空。最多保留 500 条。
+- **历史记录**：按日期分组，用开始、结束两个日历选择器筛选日期区间，默认都是今天；支持搜索、导出 JSON、清空。最多保留 500 条。
 - **辅助进程归属**：浏览器、Electron 等应用的音频辅助进程会归到所属的主应用下。
+- **中英文界面**：跟随系统语言显示简体中文或英文，其他语言默认显示英文。
 
 ## 系统要求
 
@@ -25,6 +26,22 @@ Mac 突然“叮”一声，却不知道是哪个应用发出的？音源排查�
 从 [Releases](../../releases) 下载 `SoundTrace-版本号-macOS-arm64.zip`，解压后把「音源排查.app」拖到“应用程序”文件夹。
 
 应用使用临时签名（ad-hoc），首次打开时如果被系统拦截，请右键点击应用选择“打开”，或在“系统设置 → 隐私与安全性”里允许打开。
+
+## 切换界面语言
+
+应用内没有语言开关，默认跟随系统语言：简体中文系统显示中文，其他语言显示英文。只想改这个应用的语言：
+
+1. 打开“系统设置 → 通用 → 语言与地区”，在底部“应用程序”里点“+”。
+2. 应用选择“音源排查”，语言选择“English”或“简体中文”。
+3. 退出并重新打开音源排查。
+
+也可以在终端设置（同样需要重新打开应用）：
+
+```sh
+defaults write local.shawn.SoundTrace AppleLanguages '("en")'       # 英文
+defaults write local.shawn.SoundTrace AppleLanguages '("zh-Hans")'  # 简体中文
+defaults delete local.shawn.SoundTrace AppleLanguages               # 恢复跟随系统
+```
 
 ## 从源码构建
 
@@ -74,6 +91,7 @@ Sources/
   CoreAudioReader.swift             Core Audio 读取
   AppResolver.swift                 进程 → 应用的归属
   SoundLogStream.swift              系统音效日志解析
+Resources/*.lproj                   中英文界面文案
 Tests/                              逻辑测试与界面渲染测试
 Assets/AppIcon.png                  应用图标
 Tools/PrepareIcon.swift             图标处理脚本
